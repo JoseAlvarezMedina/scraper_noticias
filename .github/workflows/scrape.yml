@@ -1,0 +1,38 @@
+name: Scrapy every 6h
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'       # cada 6 horas UTC
+  workflow_dispatch: {}         # permite ejecutarlo manualmente
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install scrapy
+
+      - name: Run scraper
+        run: |
+          source venv/bin/activate
+          scrapy crawl titulares
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add noticias.csv
+          git commit -m "Actualiza scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios"
+          git push

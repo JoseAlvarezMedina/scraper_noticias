@@ -1,0 +1,13 @@
+# Entorno virtual
+venv/
+.venv/
+
+# Cachés de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Bases de datos y salidas
+noticias.db
+salida.json
+.DS_Store

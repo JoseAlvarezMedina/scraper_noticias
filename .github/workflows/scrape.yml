@@ -1,17 +1,25 @@
 name: Scrapy every 6h
 
+# 1) Permisos de escritura para el GITHUB_TOKEN
+permissions:
+  contents: write
+
 on:
   schedule:
-    - cron: '0 */6 * * *'       # cada 6 horas UTC
-  workflow_dispatch: {}         # permite ejecutarlo manualmente
+    - cron: '0 */6 * * *'    # cada 6 horas UTC
+  workflow_dispatch: {}      # te permite trigger manual
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # 2) Checkout con persistencia de credenciales
+      - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true  # importante
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -29,10 +37,15 @@ jobs:
           source venv/bin/activate
           scrapy crawl titulares
 
-      - name: Commit results
+      # 3) Configura remote con el GITHUB_TOKEN y push
+      - name: Commit and push results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
-          git add noticias.csv
-          git commit -m "Actualiza scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios"
-          git push
+          # Apunta el origin a usar el token automáticamente
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          git add noticias.csv noticias.db
+          git commit -m "Actualiza scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios que commitear"
+          git push origin HEAD:main

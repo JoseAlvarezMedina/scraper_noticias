@@ -1,0 +1,25 @@
+# Entorno virtual
+venv/
+**/venv/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Datos generados (no versionar)
+*.csv
+*.db
+
+# Caché de Streamlit
+.streamlit/
+
+# Logs y temporales
+*.log
+*.tmp

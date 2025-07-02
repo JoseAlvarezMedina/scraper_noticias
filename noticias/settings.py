@@ -67,10 +67,12 @@ ROBOTSTXT_OBEY = True
 # Carga el pipeline de normalización y luego el de SQLite
 ITEM_PIPELINES = {
     'noticias.pipelines.NormalizarTextoPipeline': 300,
+    'noticias.pipelines.SentimentPipeline':       350,
+    'noticias.pipelines.TopicPipeline':           375,
     'noticias.pipelines.AlmacenarSQLitePipeline': 400,
-    # Si quieres CSV adicional, descomenta la línea siguiente:
-    'noticias.pipelines.AlmacenarCSVPL': 500,
+    'noticias.pipelines.AlmacenarCSVPL':          500,
 }
+
 
 # Asegúrate de obedecer robots.txt
 ROBOTSTXT_OBEY = True

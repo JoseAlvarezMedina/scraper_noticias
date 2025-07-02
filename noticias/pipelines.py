@@ -67,21 +67,26 @@ class AlmacenarSQLitePipeline:
         self.conn.close()
 
 class AlmacenarCSVPL:
-    """(Opcional) Guarda cada item también en un CSV."""
     def open_spider(self, spider):
-        self.file = open('noticias.csv', 'w', newline='', encoding='utf-8')
+        file_exists = os.path.exists('noticias.csv')
+        self.file = open('noticias.csv', 'a', newline='', encoding='utf-8')
         self.writer = csv.writer(self.file)
-        self.writer.writerow(['titulo','resumen','autor','fecha','url'])
+        if not file_exists:
+            # Cabecera actualizada: incluye sentiment_score, sentiment y topic
+            self.writer.writerow([
+                'titulo', 'resumen', 'autor', 'fecha', 'url',
+                'sentiment_score', 'sentiment', 'topic'
+            ])
 
     def process_item(self, item, spider):
         self.writer.writerow([
-            item['titulo'],
-            item['resumen'],
-            item['autor'],
-            item['fecha'],
-            item['url']
+            item.get('titulo',''),
+            item.get('resumen',''),
+            item.get('autor',''),
+            item.get('fecha',''),
+            item.get('url',''),
+            item.get('sentiment_score',''),
+            item.get('sentiment',''),
+            item.get('topic','')
         ])
         return item
-
-    def close_spider(self, spider):
-        self.file.close()

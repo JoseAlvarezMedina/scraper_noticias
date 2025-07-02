@@ -7,7 +7,7 @@ permissions:
 on:
   schedule:
     - cron: '0 */6 * * *'   # cada 6 horas (UTC)
-  workflow_dispatch:
+  workflow_dispatch:        # permite dispararlo manualmente
 
 jobs:
   build-and-run:
@@ -21,24 +21,25 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
 
-      # 2) Configurar Python
+      # 2) Configurar Python 3.11
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # 3) Instalar dependencias (con wheel de tokenizers)
+      # 3) Instalar dependencias
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Forzamos tokenizers==0.10.3 (tiene wheel para CPython 3.11) 
-          pip install tokenizers==0.10.3 --only-binary tokenizers
-          # Ahora el resto de tus reqs; pip no volverá a compilar tokenizers
+          # Fuerza versiones con wheels ya precompilados:
+          pip install "transformers>=4.17.0" "tokenizers>=0.12.1"
+          # Luego instala el resto de tu requirements:
           pip install -r requirements.txt
 
       # 4) Ejecutar Scrapy
       - name: Run scraper
-        run: scrapy crawl titulares
+        run: |
+          scrapy crawl titulares
 
       # 5) Commit & Push de los datos generados
       - name: Commit and push results
@@ -46,7 +47,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
-          # git config user.email "actions@github.com"  # eliminado a petición tuya
+          git config user.email "actions@github.com"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
           git add noticias.csv noticias.db
           git commit -m "🤖 Actualización automática de scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios que commitear"

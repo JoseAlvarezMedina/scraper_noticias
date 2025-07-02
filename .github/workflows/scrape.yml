@@ -1,60 +1,48 @@
 # .github/workflows/scrape.yml
 name: Scrapy every 6h
 
-# Permisos para que GitHub Actions pueda hacer push
 permissions:
   contents: write
 
 on:
   schedule:
     - cron: '0 */6 * * *'   # cada 6 horas UTC
-  workflow_dispatch:         # permite dispararlo manualmente
+  workflow_dispatch:
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Clona el repositorio con todas las ramas e historial
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           persist-credentials: true
           fetch-depth: 0
 
-      # 2) Prepara Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # 3) Instala las dependencias
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Instalamos pysentimiento en su última versión estable (compatibilidad con transformers recientes)
-          pip install pysentimiento
-          # Ahora instalamos el resto desde requirements.txt
+          # Instalamos pysentimiento primero para fijar su versión de transformers
+          pip install pysentimiento==0.2.0
+          # Ahora el resto desde requirements.txt; pip elegirá tokenizers<0.11
           pip install -r requirements.txt
 
-      # 4) Ejecuta el scraper
-      - name: Run Scrapy
-        run: |
-          scrapy crawl titulares
+      - name: Run scraper
+        run: scrapy crawl titulares
 
-      # 5) Commit & Push de los CSV/DB generados
       - name: Commit and push results
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configura git para el bot
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
-          # Ajusta el remote para que use el token
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
-          # Añade solo los archivos de datos para no mezclar código ni venv
           git add noticias.csv noticias.db
-          # Hacemos commit si hay cambios
           git commit -m "🤖 Actualización automática de scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios que commitear"
-          # Push a main
           git push origin HEAD:main

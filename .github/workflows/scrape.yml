@@ -1,51 +1,61 @@
+# .github/workflows/scrape.yml
 name: Scrapy every 6h
 
-# 1) Permisos de escritura para el GITHUB_TOKEN
+# Para poder hacer push de los resultados
 permissions:
   contents: write
 
 on:
   schedule:
-    - cron: '0 */6 * * *'    # cada 6 horas UTC
-  workflow_dispatch: {}      # te permite trigger manual
+    - cron:  '0 */6 * * *'   # cada 6 horas (UTC)
+  workflow_dispatch:         # permite dispararlo manualmente
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
 
     steps:
-      # 2) Checkout con persistencia de credenciales
+      # 1) Clonar el repositorio
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # importante
+          persist-credentials: true
           fetch-depth: 0
 
+      # 2) Configurar Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
+      # 3) Instalar dependencias
       - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install scrapy
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
+      # 4) Ejecutar Scrapy
       - name: Run scraper
         run: |
-          source venv/bin/activate
           scrapy crawl titulares
 
-      # 3) Configura remote con el GITHUB_TOKEN y push
+      # 5) Commit & Push de los datos generados
       - name: Commit and push results
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Configura git para el bot
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
-          # Apunta el origin a usar el token automáticamente
+
+          # Apunta el remote al token para poder push
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+
+          # Añade solo los archivos de datos
           git add noticias.csv noticias.db
-          git commit -m "Actualiza scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios que commitear"
+
+          # Commit si hay cambios
+          git commit -m "🤖 Actualización automática de scraping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No hay cambios que commitear"
+
+          # Envía a main
           git push origin HEAD:main

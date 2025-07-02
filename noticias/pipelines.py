@@ -90,3 +90,14 @@ class AlmacenarCSVPL:
             item.get('topic','')
         ])
         return item
+
+class SentimentPipeline:
+    """Añade campo 'sentiment' y 'sentiment_score'."""
+    def open_spider(self, spider):
+        self.analyzer = SentimentIntensityAnalyzer()
+
+    def process_item(self, item, spider):
+        # ...
+        item['sentiment_score'] = compound
+        item['sentiment'] = label
+        return item

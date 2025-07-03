@@ -1,6 +1,7 @@
 import scrapy
 from noticias.items import NoticiaItem
 
+
 class TitularesSpider(scrapy.Spider):
     name = 'titulares'
     allowed_domains = [

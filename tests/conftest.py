@@ -1,5 +1,4 @@
 import pytest
-from scrapy.http import TextResponse, Request
 from noticias.pipelines import NormalizeTextPipeline, SentimentPipeline
 from noticias.spiders.titulares import TitularesSpider
 
@@ -25,3 +24,16 @@ def sentiment_pipeline():
 @pytest.fixture
 def spider():
     return TitularesSpider()
+
+
+import logging
+
+class FakeSpider:
+    def __init__(self):
+        self.logger = logging.getLogger("test")
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(logging.StreamHandler())
+
+@pytest.fixture
+def fake_spider():
+    return FakeSpider()

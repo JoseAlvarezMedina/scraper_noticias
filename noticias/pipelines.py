@@ -7,22 +7,26 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 
 class NormalizeTextPipeline:
+    """
+    Limpia texto, normaliza fechas y descarta ítems sin URL.
+    """
+
     def process_item(self, item, spider):
+        # Limpiar texto
         for field in ('titulo', 'resumen', 'autor'):
             value = item.get(field, '')
             item[field] = value.strip() if isinstance(value, str) else ''
 
-        # Procesar la fecha: intenta múltiples formatos comunes
+        # Procesar la fecha
         raw_date = item.get('fecha', '')
         parsed_date = ''
-
         date_formats = [
         '%a, %d %b %Y %H:%M:%S %z',  # Thu, 03 Jul 2025 14:58:43 +0000
         '%Y-%m-%dT%H:%M:%S%z',       # 2025-07-03T14:58:43+0000
-        '%Y-%m-%d %H:%M:%S',         # 2025-07-03 14:53:08  ✅ <-- Agrega esta
+        '%Y-%m-%dT%H:%M:%S',         # 2025-07-03T12:00:00 ✅ <--- AGREGAR ESTA
+        '%Y-%m-%d %H:%M:%S',         # 2025-07-03 14:53:08
         '%Y-%m-%d'                   # 2025-07-03
         ]
-
         for fmt in date_formats:
             try:
                 dt = datetime.strptime(raw_date, fmt)
@@ -33,7 +37,6 @@ class NormalizeTextPipeline:
 
         if not parsed_date:
             spider.logger.warning(f"Invalid date format: {raw_date}")
-
         item['fecha'] = parsed_date
 
         if not item.get('url'):
@@ -43,6 +46,10 @@ class NormalizeTextPipeline:
 
 
 class SentimentPipeline:
+    """
+    Calcula el sentimiento del resumen usando VaderSentiment.
+    """
+
     def open_spider(self, spider):
         self.analyzer = SentimentIntensityAnalyzer()
 
@@ -64,12 +71,15 @@ class SentimentPipeline:
 
 
 class SQLiteStorePipeline:
+    """
+    Guarda los ítems en una base de datos SQLite.
+    """
+
     def open_spider(self, spider):
         db_path = spider.settings.get('SQLITE_DB_PATH', 'noticias.db')
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS noticias (
                 titulo TEXT,
                 resumen TEXT,
@@ -79,29 +89,25 @@ class SQLiteStorePipeline:
                 sentiment_score REAL,
                 sentiment TEXT
             )
-            """
-        )
+        """)
         self.conn.commit()
 
     def process_item(self, item, spider):
         try:
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 INSERT INTO noticias (
                     titulo, resumen, autor, fecha, url,
                     sentiment_score, sentiment
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    item.get('titulo', ''),
-                    item.get('resumen', ''),
-                    item.get('autor', ''),
-                    item.get('fecha', ''),
-                    item.get('url', ''),
-                    item.get('sentiment_score', 0.0),
-                    item.get('sentiment', '')
-                )
-            )
+            """, (
+                item.get('titulo', ''),
+                item.get('resumen', ''),
+                item.get('autor', ''),
+                item.get('fecha', ''),
+                item.get('url', ''),
+                item.get('sentiment_score', 0.0),
+                item.get('sentiment', '')
+            ))
             self.conn.commit()
         except sqlite3.IntegrityError:
             spider.logger.debug(f"Duplicate URL skipped: {item.get('url')}")
@@ -111,12 +117,9 @@ class SQLiteStorePipeline:
         self.conn.close()
 
 
-
 class CSVStorePipeline:
     """
-    Append items to a CSV file while avoiding duplicates using the URL field.
-    Configuration via Scrapy settings:
-      - CSV_FILE_PATH: path to the CSV file (default: 'noticias.csv')
+    Guarda ítems en un CSV evitando duplicados por URL.
     """
 
     def open_spider(self, spider):
@@ -127,18 +130,15 @@ class CSVStorePipeline:
         ]
         self.existing_urls = set()
 
-        # Leer URLs existentes si el archivo ya existe
         if os.path.isfile(self.csv_path):
             with open(self.csv_path, newline='', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     self.existing_urls.add(row['url'])
 
-        # Abrir archivo en modo append y preparar el escritor
         self.file = open(self.csv_path, 'a', newline='', encoding='utf-8')
         self.writer = csv.DictWriter(self.file, fieldnames=self.fieldnames)
 
-        # Escribir encabezados si el archivo está vacío
         if os.stat(self.csv_path).st_size == 0:
             self.writer.writeheader()
 

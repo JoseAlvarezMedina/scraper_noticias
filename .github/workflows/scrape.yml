@@ -32,7 +32,9 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Run pytest
-        run: pytest --maxfail=1 --disable-warnings -q
+        run: |
+          export PYTHONPATH=.
+          pytest --maxfail=1 --disable-warnings -q
 
   scrape-and-push:
     name: Scrape & Publish Artifacts

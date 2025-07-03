@@ -13,3 +13,7 @@ class NoticiaItem(scrapy.Item):
     autor   = scrapy.Field()
     fecha   = scrapy.Field()
     url     = scrapy.Field()
+
+    # Campos añadidos por el pipeline de sentimiento
+    sentiment_score = scrapy.Field()
+    sentiment = scrapy.Field()
